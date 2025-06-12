@@ -4,7 +4,7 @@ import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
-import s from './LeftPanel.module.css';
+import style from './LeftPanel.module.css';
 
 export default function LeftPanel() {
   const { fileName, pages, setSelectedRegion } = usePDFStore();
@@ -19,8 +19,8 @@ export default function LeftPanel() {
   };
 
   const handlePageLoadSuccess = (pageNumber, canvas) => {
-    const ctx = canvas.getContext('2d');
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const context = canvas.getContext('2d');
+    const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
     usePDFStore.setState((state) => {
       const newPages = [...state.pages];
       newPages[pageNumber - 1] = { canvas, imageData: imgData };
@@ -28,20 +28,20 @@ export default function LeftPanel() {
     });
   };
 
-  const startSelection = (e, pageNum) => {
+  const startSelection = (event, pageNum) => {
     setIsSelecting(true);
-    const rect = e.target.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const rect = event.target.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
     setSelectionStart({ x, y, pageNum });
     setSelectionEnd(null);
   };
 
-  const drawSelection = (e) => {
+  const drawSelection = (event) => {
     if (!isSelecting) return;
-    const rect = e.target.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const rect = event.target.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
     setSelectionEnd({ x, y });
   };
 
@@ -67,7 +67,7 @@ export default function LeftPanel() {
     }
 
     const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
+    const tempContext = tempCanvas.getContext('2d');
 
     tempCanvas.width = width;
     tempCanvas.height = height;
@@ -75,7 +75,7 @@ export default function LeftPanel() {
     const sourceCanvas = page.canvas;
     const pixelRatio = window.devicePixelRatio || 1;
 
-    tempCtx.drawImage(sourceCanvas, left * pixelRatio, top * pixelRatio, width * pixelRatio, height * pixelRatio, 0, 0, width, height);
+    tempContext.drawImage(sourceCanvas, left * pixelRatio, top * pixelRatio, width * pixelRatio, height * pixelRatio, 0, 0, width, height);
 
     const base64Image = tempCanvas.toDataURL('image/png');
 
@@ -90,11 +90,17 @@ export default function LeftPanel() {
     setSelectionEnd(null);
   };
   return (
-    <div className={s.leftPanel}>
+    <div className={style.leftPanel}>
       <h2>Файл: {fileName}</h2>
-      <Document file={fileName} onLoadSuccess={onDocumentLoadSuccess} loading="Загрузка PDF..." error="Ошибка загрузки файла" className={s.document}>
+      <Document
+        file={fileName}
+        onLoadSuccess={onDocumentLoadSuccess}
+        loading="Загрузка PDF..."
+        error="Ошибка загрузки файла"
+        className={style.document}
+      >
         {Array.from(new Array(numPages), (_, index) => (
-          <div key={`page_container_${index + 1}`} className={s.pageContainer}>
+          <div key={`page_container_${index + 1}`} className={style.pageContainer}>
             <Page
               key={`page_${index + 1}`}
               pageNumber={index + 1}
@@ -108,23 +114,17 @@ export default function LeftPanel() {
               onMouseDown={(e) => startSelection(e, index + 1)}
               onMouseMove={drawSelection}
               onMouseUp={endSelection}
-              className={s.pdfPage}
-              style={{ border: '1px solid #ccc', marginBottom: '10px' }}
+              className={style.pdfPage}
             />
 
             {isSelecting && selectionStart?.pageNum === index + 1 && selectionEnd && (
               <div
-                className={s.selectionOverlay}
+                className={style.selectionOverlay}
                 style={{
-                  position: 'absolute',
                   left: `${Math.min(selectionStart.x, selectionEnd.x)}px`,
                   top: `${Math.min(selectionStart.y, selectionEnd.y)}px`,
                   width: `${Math.abs(selectionStart.x - selectionEnd.x)}px`,
                   height: `${Math.abs(selectionStart.y - selectionEnd.y)}px`,
-                  border: '2px dashed red',
-                  pointerEvents: 'none',
-                  backgroundColor: 'rgba(255, 0, 0, 0.2)',
-                  zIndex: 10,
                 }}
               />
             )}

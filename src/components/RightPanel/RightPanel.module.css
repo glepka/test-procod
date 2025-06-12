@@ -3,8 +3,24 @@
   padding: 20px;
   overflow-y: auto;
   border-left: 1px solid #ccc;
+  position: relative;
 }
 
 .img {
   max-width: '100%';
+  border: 1px solid #ccc;
+}
+
+.regionsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  list-style: none;
+}
+
+.buttons {
+  position: fixed;
+  bottom: 20px;
+  display: flex;
+  gap: 10px;
 }

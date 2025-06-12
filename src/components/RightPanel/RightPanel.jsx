@@ -1,32 +1,38 @@
-import { useEffect } from 'react';
 import { usePDFStore } from '../../store/store';
 
-import s from './RightPanel.module.css';
+import style from './RightPanel.module.css';
 
 export default function RightPanel() {
-  const { selectedRegions, addRegion, clearSelection, selectedRegion } = usePDFStore();
-
-  useEffect(() => {
-    console.log(selectedRegions);
-  }, [selectedRegions]);
+  const { selectedRegions, addRegion, clearSelection, selectedRegion, setSelectedRegion } = usePDFStore();
 
   return (
-    <div className={s.rightPanel}>
+    <div className={style.rightPanel}>
+      <div className={style.buttons}>
+        <button
+          onClick={() => {
+            if (Object.keys(selectedRegion).length != 0) {
+              addRegion(selectedRegion);
+            }
+            setSelectedRegion({});
+          }}
+        >
+          Применить
+        </button>
+        <button onClick={clearSelection}>Очистить</button>
+      </div>
       <h2>Выбранные области</h2>
       {selectedRegions.length === 0 ? (
         <p>Пока нет выбранных областей</p>
       ) : (
-        selectedRegions.map((region, index) => (
-          <div key={index} style={{ marginBottom: 15 }}>
-            <img src={region.image} alt={`Область ${index + 1}`} className={s.img} />
-            <p>Страница {region.page}</p>
-          </div>
-        ))
+        <ul className={style.regionsList}>
+          {selectedRegions.map((region, index) => (
+            <li key={index}>
+              <img src={region.image} alt={`Область ${index + 1}`} className={style.img} />
+              <p>Страница {region.page}</p>
+            </li>
+          ))}
+        </ul>
       )}
-      <button onClick={() => addRegion(selectedRegion)}>Применить</button>
-      <button onClick={clearSelection} style={{ marginLeft: 10 }}>
-        Очистить
-      </button>
     </div>
   );
 }
