@@ -1,0 +1,7 @@
+.rect {
+  position: absolute;
+  border: 2px dashed rgb(231, 101, 101);
+  background-color: rgba(8, 141, 48, 0.2);
+  pointer-events: none;
+  z-index: 10;
+}

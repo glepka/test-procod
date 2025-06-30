@@ -1,17 +1,21 @@
-import { useState } from 'react';
-import { usePDFStore } from '../../store/store';
-import { pdfjs, Document, Page } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import { useState, useEffect } from "react";
+import { usePDFStore } from "../../store/store";
+import { pdfjs, Document, Page } from "react-pdf";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
-import style from './LeftPanel.module.css';
+import style from "./LeftPanel.module.css";
+import SelectedRect from "../SelectedRect/SelectedRect";
+import Rect from "../Rect/Rect";
+import { sendRect } from "../../api/api";
 
 export default function LeftPanel() {
-  const { fileName, pages, setSelectedRegion } = usePDFStore();
+  const { fileName, pages, selectedRegions, addRegion } = usePDFStore();
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState(null);
   const [selectionEnd, setSelectionEnd] = useState(null);
   const [numPages, setNumPages] = useState(null);
+  const [scale, setScale] = useState(1.0);
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
@@ -19,7 +23,7 @@ export default function LeftPanel() {
   };
 
   const handlePageLoadSuccess = (pageNumber, canvas) => {
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
     const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
     usePDFStore.setState((state) => {
       const newPages = [...state.pages];
@@ -31,17 +35,33 @@ export default function LeftPanel() {
   const startSelection = (event, pageNum) => {
     setIsSelecting(true);
     const rect = event.target.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const x = (event.clientX - rect.left) / scale; // <-- делим на scale
+    const y = (event.clientY - rect.top) / scale; // <-- делим на scale
     setSelectionStart({ x, y, pageNum });
     setSelectionEnd(null);
   };
 
   const drawSelection = (event) => {
-    if (!isSelecting) return;
-    const rect = event.target.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    if (!isSelecting || !selectionStart) return;
+
+    const { pageNum } = selectionStart;
+
+    const pageDiv = document.querySelector(`[data-page-number="${pageNum}"]`);
+    if (!pageDiv) return;
+
+    const rect = pageDiv.getBoundingClientRect();
+
+    const isInPage =
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom;
+
+    if (!isInPage) return;
+
+    const x = (event.clientX - rect.left) / scale;
+    const y = (event.clientY - rect.top) / scale;
+
     setSelectionEnd({ x, y });
   };
 
@@ -54,41 +74,120 @@ export default function LeftPanel() {
     const { x: startX, y: startY, pageNum } = selectionStart;
     const { x: endX, y: endY } = selectionEnd;
 
-    const left = Math.min(startX, endX);
-    const top = Math.min(startY, endY);
-    const width = Math.abs(startX - endX);
-    const height = Math.abs(startY - endY);
-
     const page = pages[pageNum - 1];
-
-    if (!page || !page.canvas || width === 0 || height === 0) {
+    if (!page || !page.canvas) {
       setIsSelecting(false);
       return;
     }
 
-    const tempCanvas = document.createElement('canvas');
-    const tempContext = tempCanvas.getContext('2d');
+    let left = Math.min(startX, endX);
+    let top = Math.min(startY, endY);
+    let width = Math.abs(startX - endX);
+    let height = Math.abs(startY - endY);
 
-    tempCanvas.width = width;
-    tempCanvas.height = height;
+    const pageWidth = page.canvas.width;
+    const pageHeight = page.canvas.height;
+
+    const clampedLeft = Math.max(0, left);
+    const clampedTop = Math.max(0, top);
+    const clampedRight = Math.min(pageWidth, left + width);
+    const clampedBottom = Math.min(pageHeight, top + height);
+
+    const clampedWidth = clampedRight - clampedLeft;
+    const clampedHeight = clampedBottom - clampedTop;
+
+    if (clampedWidth <= 0 || clampedHeight <= 0) {
+      setIsSelecting(false);
+      return;
+    }
+
+    const tempCanvas = document.createElement("canvas");
+    const tempContext = tempCanvas.getContext("2d");
+
+    tempCanvas.width = clampedWidth;
+    tempCanvas.height = clampedHeight;
 
     const sourceCanvas = page.canvas;
     const pixelRatio = window.devicePixelRatio || 1;
 
-    tempContext.drawImage(sourceCanvas, left * pixelRatio, top * pixelRatio, width * pixelRatio, height * pixelRatio, 0, 0, width, height);
+    tempContext.drawImage(
+      sourceCanvas,
+      clampedLeft * pixelRatio,
+      clampedTop * pixelRatio,
+      clampedWidth * pixelRatio,
+      clampedHeight * pixelRatio,
+      0,
+      0,
+      clampedWidth,
+      clampedHeight
+    );
 
-    const base64Image = tempCanvas.toDataURL('image/png');
+    // const selected = {
+    //   id: Date.now().toString(),
 
-    setSelectedRegion({
-      image: base64Image,
-      page: pageNum,
-      coordinates: { left, top, width, height },
-    });
+    //   page: pageNum,
+    //   coordinates: {
+    //     left: clampedLeft,
+    //     top: clampedTop,
+    //     width: clampedWidth,
+    //     height: clampedHeight,
+    //   },
+    // };
+
+    const selected = {
+      ml_id: Date.now().toString(),
+      id: Date.now().toString(),
+      page_num: pageNum,
+      wh: pageWidth / pageHeight,
+      coordinates: {
+        left: clampedLeft,
+        top: clampedTop,
+        width: clampedWidth,
+        height: clampedHeight,
+      },
+      rect: {
+        x1: clampedLeft,
+        y1: clampedTop,
+        x2: clampedLeft + clampedWidth,
+        y2: clampedTop + clampedHeight,
+      },
+      type: "text",
+    };
+
+    sendRect(selected)
+      .then((res) => {
+        const data = res.data;
+        const newRect = { content: data.content, ...selected };
+        addRegion(newRect);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
 
     setIsSelecting(false);
-    setSelectionStart(null);
-    setSelectionEnd(null);
   };
+
+  const handleWheel = (e) => {
+    if (e.ctrlKey) {
+      e.preventDefault();
+
+      const zoomStep = 0.5;
+      const newScale = parseFloat(
+        (scale + (e.deltaY < 0 ? zoomStep : -zoomStep)).toFixed(2)
+      );
+
+      setScale(newScale);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      window.removeEventListener("wheel", handleWheel);
+    };
+  }, [scale]);
+
   return (
     <div className={style.leftPanel}>
       <h2>Файл: {fileName}</h2>
@@ -100,34 +199,50 @@ export default function LeftPanel() {
         className={style.document}
       >
         {Array.from(new Array(numPages), (_, index) => (
-          <div key={`page_container_${index + 1}`} className={style.pageContainer}>
-            <Page
-              key={`page_${index + 1}`}
-              pageNumber={index + 1}
-              renderTextLayer={false}
-              renderAnnotationLayer={false}
-              canvasRef={(canvas) => {
-                if (canvas && !pages[index]) {
-                  handlePageLoadSuccess(index + 1, canvas);
-                }
-              }}
-              onMouseDown={(e) => startSelection(e, index + 1)}
-              onMouseMove={drawSelection}
-              onMouseUp={endSelection}
-              className={style.pdfPage}
-            />
-
-            {isSelecting && selectionStart?.pageNum === index + 1 && selectionEnd && (
-              <div
-                className={style.selectionOverlay}
-                style={{
-                  left: `${Math.min(selectionStart.x, selectionEnd.x)}px`,
-                  top: `${Math.min(selectionStart.y, selectionEnd.y)}px`,
-                  width: `${Math.abs(selectionStart.x - selectionEnd.x)}px`,
-                  height: `${Math.abs(selectionStart.y - selectionEnd.y)}px`,
+          <div className={style.pageWrapper} key={index}>
+            <div
+              key={`page_container_${index + 1}`}
+              className={style.pageContainer}
+            >
+              <Page
+                key={`page_${index + 1}`}
+                pageNumber={index + 1}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+                canvasRef={(canvas) => {
+                  if (canvas && !pages[index]) {
+                    handlePageLoadSuccess(index + 1, canvas);
+                  }
                 }}
+                onMouseDown={(e) => startSelection(e, index + 1)}
+                onMouseMove={drawSelection}
+                onMouseUp={endSelection}
+                className={style.pdfPage}
+                scale={scale}
               />
-            )}
+
+              {selectedRegions
+                .filter((region) => region.page_num === index + 1)
+                .map((region, idx) => {
+                  return (
+                    <SelectedRect
+                      coordinates={region.coordinates}
+                      idx={idx}
+                      scale={scale}
+                    />
+                  );
+                })}
+
+              {isSelecting &&
+                selectionStart?.pageNum === index + 1 &&
+                selectionEnd && (
+                  <Rect
+                    selectionStart={selectionStart}
+                    selectionEnd={selectionEnd}
+                    scale={scale}
+                  />
+                )}
+            </div>
           </div>
         ))}
       </Document>

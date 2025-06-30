@@ -1,0 +1,154 @@
+.block {
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  padding: 10px;
+  max-width: fit-content;
+}
+
+.type {
+  position: absolute;
+  background-color: #ff9e42;
+  top: -23px;
+  left: 0;
+  font-family: Arial;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 100%;
+  letter-spacing: 0%;
+  text-align: center;
+  padding: 5px 6px;
+  border-radius: 4px 4px 0 0;
+  color: #fff;
+}
+
+.h {
+  border-color: #ff9e42;
+  background-color: rgba(255, 158, 66, 0.5);
+}
+
+.h .type {
+  background: #ff9e42;
+  color: #663200;
+}
+.p {
+  border-color: #5ad8cc;
+  background-color: rgba(90, 216, 204, 0.5);
+}
+
+.p .type {
+  background: #27a599;
+  color: #d6f5f2;
+}
+.img {
+  border-color: #66d575;
+  background-color: rgba(102, 213, 117, 0.5);
+}
+
+.img .type {
+  background: #238030;
+}
+
+.table {
+  border-color: #874fff;
+  background-color: rgba(135, 79, 255, 0.5);
+}
+
+.table .type {
+  background: #874fff;
+}
+.fx {
+  background: #ffba0f;
+  background-color: #cbb2ff;
+}
+
+.fx .type {
+  background: #ff9e42;
+}
+.icon {
+  background: #ff988f;
+  background-color: #cbb2ff;
+}
+.icon .type {
+  background: #ff9e42;
+}
+.ul {
+  border-color: #3dadff;
+  background-color: rgba(61, 173, 255, 0.5);
+}
+.ul .type {
+  background: #f618b0;
+}
+.ol {
+  border-color: #f849c1;
+  background-color: rgba(248, 73, 193, 0.5);
+}
+.ol .type {
+  background: #ff9e42;
+}
+.link {
+  border-color: #2ca03c;
+  background-color: #cbb2ff;
+}
+.link .type {
+  background: #ff9e42;
+}
+
+h1 {
+  font-family: Arial;
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 100%;
+  letter-spacing: 0%;
+  vertical-align: bottom;
+  color: #000000;
+}
+
+h2 {
+  font-family: Arial;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 100%;
+  letter-spacing: 0%;
+  vertical-align: bottom;
+  color: #000000;
+}
+
+p {
+  font-family: Arial;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0%;
+  vertical-align: bottom;
+  color: #000000;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  box-sizing: border-box;
+}
+
+td {
+  border: 3px solid #ccc;
+  padding: 20px;
+  text-align: center;
+  vertical-align: middle;
+  border-radius: 10px;
+  color: #000000;
+}
+
+a {
+  font-family: Arial;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0%;
+  vertical-align: bottom;
+  width: 100%;
+  text-decoration: underline;
+  color: #000;
+  position: relative;
+  z-index: 8;
+}
